@@ -10,7 +10,15 @@ console.log("\nInitializing spellchecker!\n");
   of all lowercase words in the string.)
 */
 function getWordCounts(text) {
-
+  var wordsCount = {};
+  var words = text.toLowerCase().match(/[a-z]+/g);
+  for (var i = 0; i < words.length; i++) {
+    if (!wordsCount.hasOwnProperty(words[i])) {
+      wordsCount[words[i]] = 0;
+    }
+    wordsCount[words[i]]++;
+  }
+  return wordsCount;
 }
 
 var WORD_COUNTS = getWordCounts(corpus);
@@ -25,7 +33,50 @@ var alphabet = "abcdefghijklmnopqrstuvwxyz";
     - Substituting any character in the word with another character.
 */
 function editDistance1(word) {
+  var results = {};
+  var word = word.split('');
+  // at each position in the input word, inserts the next letter of of the alphabet and stores it
+  var addChar = function(word) {
+    for (var i = 0; i <= word.length; i++) {
+      for (var alphaIndex = 0; alphaIndex < alphabet.length; alphaIndex++) {
+        var newWord = word.slice(0,i).concat(alphabet[alphaIndex], word.slice(i));
+        results[newWord.join('')] = true;
+      }      
+    }
+  }
+  // at each position of the input word, removes that letter and stores it
+  var removeChar = function(word) {
+    for (var i = 0; i < word.length; i++) {
+      var newWord = word.slice(0,i).concat(word.slice(i+1));
+      results[newWord.join('')] = true;
+    }
+  }
+  // for each adjacent characters in the input word, switches the two and stores the result
+  var transpose = function(word) {
+    for (var i = 0; i < word.length; i++) {
+      var newWord = word.slice(0);
+      var switchChar1 = word[i];
+      var switchChar2 = word[i+1];
+      newWord[i] = switchChar2;
+      newWord[i+1] = switchChar1;
+      results[newWord.join('')] = true; 
+    }
+  }
+  var substitute = function(word) {
+    for (var i = 0; i < word.length; i++) {
+      for (var alphaIndex = 0; alphaIndex < alphabet.length; alphaIndex++) {
+        var newWord = word.slice(0,i).concat(alphabet[alphaIndex], word.slice(i+1));
+        results[newWord.join('')] = true;
+      }      
+    }
+  }
 
+  addChar(word);
+  removeChar(word);
+  transpose(word);
+  substitute(word);
+
+  return results;
 }
 
 
@@ -38,8 +89,54 @@ function editDistance1(word) {
     "editDistance1" *again* to each word of its own output do?)
   - Finally, if no good replacements are found, return the word.
 */
+
+function knownEditDistanceWords(editDistanceWords) {
+  result = {};
+  for (word in editDistanceWords) {
+    if (WORD_COUNTS.hasOwnProperty(word)){
+      result[word] = true;
+    }
+  }
+  return result;
+}
+
+
 function correct(word) {
-  
+  if (WORD_COUNTS.hasOwnProperty(word)) {
+    return word;
+  } else {
+    var editDistance1Words = editDistance1(word);
+    var knownEditDistance1Words = knownEditDistanceWords(editDistance1Words);
+    highestFreqWord = word;
+    highestFreqWordCount = 0;
+    if (Object.keys(knownEditDistance1Words).length !== 0) {
+      for (var legalEditDistance1Word in knownEditDistance1Words) {    
+        if (WORD_COUNTS[legalEditDistance1Word] > highestFreqWordCount) {
+          highestFreqWord = legalEditDistance1Word;
+          highestFreqWordCount = WORD_COUNTS[legalEditDistance1Word];
+        }
+      }
+    } else {
+      editDistance2 = function (editDistance1Words) {
+        editDistance2Results = {};
+        for (word in editDistance1Words) {
+          var editDistance2Words = editDistance1(word);
+          for (editDistance2Word in editDistance2Words) {
+            editDistance2Results[editDistance2Word] = true;
+          }
+        }
+        return editDistance2Results;
+      }
+      var knownEditDistance2Words = knownEditDistanceWords(editDistance2(editDistance1Words));
+      for (word in knownEditDistance2Words) {
+        if (WORD_COUNTS[word] > highestFreqWordCount) {
+          highestFreqWord = word;
+          highestFreqWordCount = WORD_COUNTS[word];
+        }
+      }
+    }
+  }
+  return highestFreqWord;
 }
 
 /*
